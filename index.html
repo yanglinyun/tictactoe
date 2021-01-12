@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>X O # tictactoe</title>
+  <style>
+    body,
+    html {
+
+      padding: 0;
+      margin: 0;
+      height: 100vh;
+    }
+
+    #canvasWrap {
+      width: 500px;
+      height: 550px;
+      margin: 0 auto;
+    }
+
+    #currActive {
+      display: flex;
+      justify-content: space-between;
+      background-color: royalblue;
+      font-size: 2em;
+      font-weight: bold;
+      text-align: center;
+      color: white;
+    }
+
+    button {
+      background-color: red;
+      font-weight: bold;
+      margin: 0;
+      font-size: 1em;
+    }
+
+    #canvas {
+      background-color: #fff;
+    }
+
+    #panel {
+      display: flex;
+      justify-content: space-between;
+      background-color: royalblue;
+      font-size: 2em;
+      font-weight: bold;
+      text-align: center;
+      color: white;
+
+    }
+
+    #ul {
+
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      flex-wrap: wrap;
+
+    }
+
+    #ul li {
+      display: inline;
+      padding: 2px;
+      border: 1px solid red;
+
+    }
+
+    .help {
+      background-color: coral;
+    }
+
+    .help h3 {
+      text-align: center;
+    }
+
+    .help p {
+      font-weight: bold;
+      line-height: 200%;
+      text-indent: 2em;
+    }
+
+    footer {
+      text-align: center;
+      background-color: teal;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+      max-width: 500px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  </style>
+  <script src="https://cdn.bootcdn.net/ajax/libs/jquery/1.9.1/jquery.js"></script>
+</head>
+
+<body>
+  <div id="canvasWrap">
+    <div id="currActive">
+      <button onclick="replay()">重玩</button>
+      <span id="currActivePlayer"></span>
+      <button onclick="retract()">悔棋(<span id="retractStep"></span>)</button>
+    </div>
+    <canvas id="canvas" width="540" height="540"></canvas>
+    <div id="panel">
+
+    </div>
+    <div class="help">
+      <h3>井字棋 - 游戏规则:</h3>
+      <p>
+        井字棋，英文名叫Tic-Tac-Toe，是一种在3*3格子上进行的连珠游戏，和五子棋类似，由于棋盘一般不画边框，格线排成井字故得名。游戏需要的工具仅为纸和笔，然后由分别代表O和X的两个游戏者轮流在格子里留下标记（一般来说先手者为X），任意三个标记形成一条直线，则为获胜。
+
+      </p>
+    </div>
+  </div>
+  <footer>
+    @熬一宿
+  </footer>
+  <script>
+    var stepHistory = []; //历史操作
+    function saveFive(step) {
+      if (stepHistory.length >= 2) {
+        stepHistory.shift();
+      }
+      stepHistory.push(step);
+    }
+
+    function updateRetractStep(count) {
+      if (count >= 1) {
+        $("#retractStep").text("" + (count - 1) + "");
+      }
+
+    }
+    var obj = {};
+    // 初始化
+    obj.init = function (args) {
+      var canvas = document.getElementById("canvas");
+      this.ctx = canvas.getContext("2d");
+      this.chunk = 100;
+      this.radius = 45;
+      $("#currActivePlayer").text("X方");
+      $("#retractStep").text("0");
+      this.currActive = "X"; //X大写
+      this.steps = []; // 记录步骤
+      this.init_back();
+      this.cheer_arr_ALL = this.createGraph(); //[{type:"black"x,y}];
+      $(canvas).unbind(); //方法移除被选元素的事件处理程序。
+      this.addEvent();
+      stepHistory = [];
+      stepHistory.push(JSON.stringify(this.cheer_arr_ALL));
+    }
+    obj.createGraph = function () {
+      var a = [];
+      for (var i = 0; i <= 3; i++) { //行循环
+        var b = []; //辅助数组
+        for (var j = 0; j <= 3; j++) { //列循环
+          b[j] = -1; //定义数组b的元素值
+        }
+        a[i] = b; //把数组b赋值给数组a
+      }
+      return a;
+    }
+    // 棋盘初始化
+    obj.init_back = function () {
+      this.drawBlock(); // 宫格颜色变换
+      this.drawRowLine();
+      this.drawColLine();
+      // this.drawText(); //标棋盘提示数字
+    }
+    // 画横线
+    obj.drawRowLine = function () {
+      for (var i = 2; i <= 3; i++) {
+        this.drawLine(1, i, 4, i, 1);
+      }
+    }
+    // 画竖线
+    obj.drawColLine = function () {
+      for (var i = 2; i <= 3; i++) {
+        this.drawLine(i, 1, i, 4, 1);
+      }
+    }
+    // 画直线
+    obj.drawLine = function (x0, y0, x1, y1, lw) {
+      var x0 = x0 * this.chunk;
+      var y0 = y0 * this.chunk;
+      var x1 = x1 * this.chunk;
+      var y1 = y1 * this.chunk;
+      this.ctx.beginPath();
+      this.ctx.strokeStyle = "black";
+      this.ctx.lineWidth = 5;
+      this.ctx.moveTo(x0, y0);
+      this.ctx.lineTo(x1, y1);
+      this.ctx.stroke();
+      this.ctx.closePath();
+    }
+    //宫格颜色变换
+    obj.drawBlock = function () {
+      for (var i = 0; i < 9; i++) {
+        var cur = i % 2;
+        this.ctx.fillStyle = cur == 0 ? '#fff' : '#E8F4F4';
+        this.ctx.fillRect((i % 3 + 1) * this.chunk, (parseInt(i / 3) + 1) * this.chunk, this.chunk, this.chunk);
+      }
+    }
+    // 画棋子形状
+    obj.drawPiece = function (x, y, value) {
+      this.ctx.beginPath();
+      var color = value == 0 ? "red" : "black";
+      this.ctx.font = "50px Times New Roman";
+      this.ctx.fillStyle = color;
+      this.ctx.textAlign = "center";
+      this.ctx.fillText(value == 0 ? "O" : "X", this.chunk * y + this.chunk / 2, this.chunk * x + this.chunk / 2 +
+        15); //边框5
+    }
+    // 增加点击事件
+    obj.addEvent = function () {
+      var that = this;
+
+      $(canvas).on("mousedown", function (ev) {
+        //判断是否满
+        if (that.isFull()) {
+          if (confirm("棋盘满了! 是否重玩?")) {
+            replay();
+          }
+          return false;
+        }
+        for (var i = 1; i <= 3; i++) {
+          for (var j = 1; j <= 3; j++) {
+            var temp_i = i * that.chunk + that.chunk * 0.5;
+            var temp_j = j * that.chunk + that.chunk * 0.5; //中点
+
+            //temp_i旗子基准点
+            //ev.offsetX 点击事件鼠标距离canvas左边的距离
+            var x_distanct = Math.abs(ev.offsetX - temp_j);
+            var y_distanct = Math.abs(ev.offsetY - temp_i);
+
+            if (x_distanct <= that.radius && y_distanct <= that.radius) { //在旗子内就触发 拦截出该棋子外的区域点击事件
+              console.log("点击快", i, j);
+              var x = i;
+              var y = j;
+              if (that.inArray(x, y)) { //位置上有棋子
+                return false;
+              }
+              //更新棋盘
+              that.cheer_arr_ALL[x][y] = that.currActive == "O" ? 0 : 1;
+              if (that.isWin(x, y)) {
+                alert((that.currActive == "O" ? "O" : "X") + "方胜");
+                replay();
+                return true;
+              }
+              that.updateChess();
+
+            }
+          };
+        }
+      });
+    }
+    // 是否结束
+    obj.isWin = function (x, y) {
+
+      var num = this.currActive == "O" ? 0 : 1;
+      //8个方向判断
+      var count = 0;
+      for (var i = x - 1; i >= 1; i--) {
+        if (this.cheer_arr_ALL[i][y] == num) {
+          count++;
+        }
+        if (count >= 2) {
+          return true;
+        }
+      }
+      count = 0;
+      for (var i = x + 1; i <= 3; i++) {
+        if (this.cheer_arr_ALL[i][y] == num) {
+          count++;
+        }
+        if (count >= 2) {
+          return true;
+        }
+      }
+      count = 0; //right
+      for (var i = y + 1; i <= 3; i++) {
+        if (this.cheer_arr_ALL[x][i] == num) {
+          count++;
+        }
+        if (count >= 2) {
+          return true;
+        }
+      }
+      count = 0; //left
+      for (var i = y - 1; i >= 1; i--) {
+        if (this.cheer_arr_ALL[x][i] == num) {
+          count++;
+        }
+        if (count >= 2) {
+          return true;
+        }
+      }
+      count = 0; //top right
+      for (var i = 1; i <= 2; i++) {
+        var temp_x = x - i;
+        var temp_y = y + i;
+        if (temp_x >= 1 && temp_x <= 3 && temp_y >= 1 && temp_y <= 3 && this.cheer_arr_ALL[temp_x][temp_y] == num) {
+          count++;
+        }
+        if (count >= 2) {
+          return true;
+        }
+      }
+      count = 0; //top left
+      for (var i = 1; i <= 2; i++) {
+        var temp_x = x - i;
+        var temp_y = y - i;
+        if (temp_x >= 1 && temp_x <= 3 && temp_y >= 1 && temp_y <= 3 && this.cheer_arr_ALL[temp_x][temp_y] == num) {
+          count++;
+        }
+        if (count >= 2) {
+          return true;
+        }
+      }
+      count = 0; //bottom left
+      for (var i = 1; i <= 2; i++) {
+        var temp_x = x + i;
+        var temp_y = y - i;
+        if (temp_x >= 1 && temp_x <= 3 && temp_y >= 1 && temp_y <= 3 && this.cheer_arr_ALL[temp_x][temp_y] == num) {
+          count++;
+        }
+        if (count >= 2) {
+          return true;
+        }
+      }
+      count = 0; //bottom right
+      for (var i = 1; i <= 2; i++) {
+        var temp_x = x + i;
+        var temp_y = y + i;
+        if (temp_x >= 1 && temp_x <= 3 && temp_y >= 1 && temp_y <= 3 && this.cheer_arr_ALL[temp_x][temp_y] == num) {
+          count++;
+        }
+        if (count >= 2) {
+          return true;
+        }
+      }
+      return false;
+
+    }
+    obj.isFull = function () {
+      for (var i = 1; i <= this.cheer_arr_ALL.length - 1; i++) {
+        for (var j = 1; j <= this.cheer_arr_ALL[i].length - 1; j++) {
+          var e = this.cheer_arr_ALL[i][j];
+          if (e == -1) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+    // 更新棋局
+    obj.updateChess = function () {
+      this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+      this.init_back();
+      saveFive(JSON.stringify(this.cheer_arr_ALL));
+      updateRetractStep(stepHistory.length);
+      for (var i = 1; i <= this.cheer_arr_ALL.length - 1; i++) {
+        for (var j = 1; j <= this.cheer_arr_ALL[i].length - 1; j++) {
+          var e = this.cheer_arr_ALL[i][j];
+          if (e != -1) {
+            this.drawPiece(i, j, e);
+          }
+        }
+      }
+
+      this.currActive = this.currActive == "O" ? "X" : "O";
+      $("#currActivePlayer").text(this.currActive == "O" ? "X方" : "O方");
+
+    }
+    obj.inArray = function (x, y) {
+      return this.cheer_arr_ALL[x][y] != -1;
+    }
+    obj.init();
+  </script>
+  <script>
+    function replay() {
+      obj.ctx.clearRect(0, 0, canvas.width, canvas.height);
+      obj.init();
+    }
+
+    function retract() {
+      if (stepHistory.length >= 2) {
+        obj.ctx.clearRect(0, 0, canvas.width, canvas.height);
+        obj.init_back();
+        var that = obj;
+        obj.cheer_arr_ALL = JSON.parse(stepHistory[stepHistory.length - 2]);
+        stepHistory.pop();
+        obj.currActive = obj.currActive == "O" ? "X" : "O";
+        $("#currActivePlayer").text(obj.currActive == "O" ? "X方" : "O方");
+        for (var i = 1; i <= obj.cheer_arr_ALL.length - 1; i++) {
+          for (var j = 1; j <= obj.cheer_arr_ALL[i].length - 1; j++) {
+            var e = obj.cheer_arr_ALL[i][j];
+            if (e != -1) {
+              obj.drawPiece(i, j, e);
+            }
+          }
+        }
+        updateRetractStep(stepHistory.length);
+      }
+    }
+  </script>
+</body>
+
+</html>
