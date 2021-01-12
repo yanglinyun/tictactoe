@@ -1,6 +1,6 @@
 # 前端实现井字棋
 # 演示地址
-<a href ="https://yanglinyun.github.io/five-in-a-row/">https://yanglinyun.github.io/five-in-a-row/</a>
+<a href ="https://yanglinyun.github.io/tictactoe/.">https://yanglinyun.github.io/tictactoe/.</a>
 
 # 實現效果UI
 <img src="./实现效果.PNG">
