@@ -372,10 +372,8 @@
           }
         }
       }
-
-      this.currActive = this.currActive == "O" ? "X" : "O";
-      $("#currActivePlayer").text(this.currActive == "O" ? "X方" : "O方");
-
+      $("#currActivePlayer").text(this.currActive == "X" ? "O方" : "X方");
+      this.currActive = this.currActive == "X" ? "O" : "X";
     }
     obj.inArray = function (x, y) {
       return this.cheer_arr_ALL[x][y] != -1;
@@ -395,8 +393,8 @@
         var that = obj;
         obj.cheer_arr_ALL = JSON.parse(stepHistory[stepHistory.length - 2]);
         stepHistory.pop();
-        obj.currActive = obj.currActive == "O" ? "X" : "O";
-        $("#currActivePlayer").text(obj.currActive == "O" ? "X方" : "O方");
+        $("#currActivePlayer").text(obj.currActive == "X" ? "O方" : "X方");
+        obj.currActive = obj.currActive == "X" ? "O" : "X";
         for (var i = 1; i <= obj.cheer_arr_ALL.length - 1; i++) {
           for (var j = 1; j <= obj.cheer_arr_ALL[i].length - 1; j++) {
             var e = obj.cheer_arr_ALL[i][j];
